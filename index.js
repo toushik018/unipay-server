@@ -28,6 +28,7 @@ async function run() {
     await client.connect();
 
     const toursCollection = client.db("toursDB").collection("tours");
+    const clubsCollection = client.db("toursDB").collection("clubs");
 
     app.get("/tours", async (req, res) => {
       const result = await toursCollection.find().toArray();
@@ -47,6 +48,18 @@ async function run() {
     app.post("/tours", async (req, res) => {
       const tour = req.body;
       const result = await toursCollection.insertOne(tour);
+      res.send(result);
+    });
+
+    app.post("/clubs", async (req, res) => {
+      const club = req.body;
+      const result = await clubsCollection.insertOne(club);
+      res.send(result);
+    });
+
+
+    app.get("/clubs", async (req, res) => {
+      const result = await clubsCollection.find().toArray();
       res.send(result);
     });
 
