@@ -30,7 +30,6 @@ const is_live = false; // true for live, false for sandbox
 async function run() {
   try {
     // Connect the client to the server (optional starting in v4.7)
-    await client.connect();
 
     const toursCollection = client.db("toursDB").collection("tours");
     const clubsCollection = client.db("toursDB").collection("clubs");
@@ -139,8 +138,8 @@ async function run() {
         total_amount: club?.fee,
         currency: order.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://unipay-server-toushik018.vercel.app/payment/success/${tran_id}`,
+        fail_url: `https://unipay-server-toushik018.vercel.app/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -195,7 +194,7 @@ async function run() {
           }
         });
         if (result.modifiedCount > 0) {
-          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`);
+          res.redirect(`https://unipay-client.web.app/payment/success/${req.params.tranId}`);
         }
       });
 
@@ -203,7 +202,7 @@ async function run() {
         const  result = await orderCollection.deleteOne({transactionId: req.params.tranId});
 
         if(result.deletedCount){
-          res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+          res.redirect(`https://unipay-client.web.app/payment/fail/${req.params.tranId}`)
         }
 
 
@@ -234,8 +233,8 @@ async function run() {
         total_amount: tour?.cost,
         currency: order.currency,
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://unipay-server-toushik018.vercel.app/payment/success/${tran_id}`,
+        fail_url: `https://unipay-server-toushik018.vercel.app/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -290,7 +289,7 @@ async function run() {
           }
         });
         if (result.modifiedCount > 0) {
-          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`);
+          res.redirect(`https://unipay-client.web.app/payment/success/${req.params.tranId}`);
         }
       });
 
@@ -298,7 +297,7 @@ async function run() {
         const  result = await tourOrdersCollection.deleteOne({transactionId: req.params.tranId});
 
         if(result.deletedCount){
-          res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
+          res.redirect(`https://unipay-client.web.app/payment/fail/${req.params.tranId}`)
         }
       })
     });
