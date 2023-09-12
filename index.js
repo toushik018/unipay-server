@@ -259,8 +259,8 @@ async function run() {
         total_amount: price,
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://unipay-server-production.up.railway.app/payment/success/${tran_id}`,
+        fail_url: `https://unipay-server-production.up.railway.app/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -355,8 +355,8 @@ async function run() {
         total_amount: tour?.cost,
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        success_url: `https://unipay-server-production.up.railway.app/payment/success/${tran_id}`,
+        fail_url: `https://unipay-server-production.up.railway.app/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
