@@ -252,6 +252,7 @@ async function run() {
         ...req.body, // Include all existing fields from req.body
         paymentType, // Add paymentType
       };
+      console.log("Club working good");
 
       // console.log(order);
 
@@ -350,6 +351,8 @@ async function run() {
       const { tourId } = req.body;
       const tour = await toursCollection.findOne({ _id: new ObjectId(tourId) });
       const order = req.body;
+
+      console.log("Tour working good");
       
       const data = {
         total_amount: tour?.cost,
@@ -385,7 +388,7 @@ async function run() {
         stu_id: order.userId
       };
 
-      console.log(data);
+      
 
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then(apiResponse => {
