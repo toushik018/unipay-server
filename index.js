@@ -17,9 +17,9 @@ app.use(express.json());
 
 
 
-// Send Grid
+// Send Grid for Events
 
-const paymentConfirmEmail = (order) => {
+const paymentConfirmEvent = (order) => {
   const studentEmail = order.order.email;
   const date = order.order.date;
   const orderId = order.transactionId;
@@ -126,6 +126,120 @@ const paymentConfirmEmail = (order) => {
   });
 };
 
+// Send Grid for Club
+const paymentConfirmClub = (order) => {
+  const studentEmail = order.order.email;
+  const date = order.order.date;
+  const orderId = order.transactionId;
+  const studentName = order.order.name;
+  const studentId = order.order.userId;
+  const studentBatch = order.order.userBatch;
+  const TourTitle = order.club.clubName;
+  const totalPrice = order.order.price;
+  const paymentType = order.order.paymentType;
+
+
+  const pdfDoc = new PDFDocument();
+
+  // Pipe the PDF content to a writable stream
+  const pdfStream = fs.createWriteStream('invoice.pdf');
+  pdfDoc.pipe(pdfStream);
+
+  // Function to add a heading with styles
+  function addHeading(text, fontSize, color, align, margin) {
+    pdfDoc.font('Helvetica-Bold')
+      .fontSize(fontSize)
+      .fillColor(color)
+      .text(text, { align: align, continued: false })
+      .moveDown(margin);
+  }
+
+  // Function to add a paragraph with styles
+  function addParagraph(text, fontSize, color, align, margin) {
+    pdfDoc.font('Helvetica')
+      .fontSize(fontSize)
+      .fillColor(color)
+      .text(text, { align: align, continued: false })
+      .moveDown(margin);
+  }
+
+  // Header
+  pdfDoc.rect(0, 0, 610, 130)
+    .fill('#e1e1e1');
+
+  pdfDoc.image('./logo.png', 60, 30, { width: 80, height: 80 });
+  addHeading('Invoice from DPMS', 24, '#0EADF0', 'center', 2);
+
+
+
+  // Order Details
+  addHeading(`Club Name: ${TourTitle}`, 18, '#5b5b5b', 'left', 1);
+
+  addParagraph(`Order ID: ${orderId}`, 14, '#5b5b5b', 'left', 0.5);
+  addParagraph(`Student Name: ${studentName}`, 14, '#5b5b5b', 'left', 0.5);
+  addParagraph(`Student Email: ${studentEmail}`, 14, '#5b5b5b', 'left', 0.5);
+  addParagraph(`Date: ${date}`, 14, '#5b5b5b', 'left', 0.5);
+  addParagraph(`Total Price: ${totalPrice} BDT`, 14, '#5b5b5b', 'left', 0.5);
+  addParagraph(`Payment Type: ${paymentType}`, 14, '#5b5b5b', 'left', 0.5);
+
+
+  // Add some spacing
+  pdfDoc.moveDown(1.5);
+
+  // Student Details
+  pdfDoc.rect(20, 350, 560, 100).fill('#FFA500');
+
+  addHeading('Student Details', 16, 'white', 'left', 0.5);
+
+  // Student Batch
+  addParagraph(`Student Batch: ${studentBatch}`, 14, 'white', 'left', 0.5);
+
+  // Student Id
+  addParagraph(`Student Id: ${studentId}`, 14, 'white', 'left', 0.5);
+
+
+  // End the PDF document
+  pdfDoc.end();
+
+  // Send email with PDF attachment
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.sendgrid.net',
+    port: 587,
+    auth: {
+      user: 'apikey',
+      pass: process.env.SENDGRID_API_KEY
+    }
+  });
+
+  transporter.sendMail({
+    from: 'toushikahmmed@gmail.com',
+    to: studentEmail,
+    subject: 'Your Invoice from DPMS',
+    text: 'Thank you for using DPMS.',
+    attachments: [
+      {
+        filename: 'invoice.pdf',
+        content: fs.createReadStream('invoice.pdf')
+      }
+    ]
+  }, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+
+  // Remove the temporary PDF file
+  pdfStream.on('finish', () => {
+    fs.unlink('invoice.pdf', (err) => {
+      if (err) {
+        console.error('Error deleting temporary PDF file:', err);
+      }
+    });
+  });
+};
+
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qesst1e.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -151,6 +265,7 @@ async function run() {
     const usersCollection = client.db("toursDB").collection("users");
     const orderCollection = client.db("toursDB").collection("clubOrders");
     const tourOrdersCollection = client.db("toursDB").collection("tourOrders");
+    const announcementsCollections = client.db("toursDB").collection("announcements");
 
     // User APIs
 
@@ -237,16 +352,29 @@ async function run() {
 
 
 
+    // Get announcements
 
+    app.get("/announcements", async (req, res) => {
+      const result = await announcementsCollections.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/announcements/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await announcementsCollections.findOne(query);
+      res.send(result);
+    });
 
     // -------------------------   Payment APIs - Clubs -------------
 
 
 
-    const tran_id = new ObjectId().toString();
+
 
     app.post("/order", async (req, res) => {
-      const { clubId, price, timestamp,paymentType } = req.body;
+      const tran_id = new ObjectId().toString();
+      const { clubId, price, timestamp, paymentType } = req.body;
       const club = await clubsCollection.findOne({ _id: new ObjectId(clubId) });
       const order = {
         ...req.body, // Include all existing fields from req.body
@@ -260,8 +388,8 @@ async function run() {
         total_amount: price,
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `https://unipay-server-production.up.railway.app/payment/success/${tran_id}`,
-        fail_url: `https://unipay-server-production.up.railway.app/payment/fail/${tran_id}`,
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -311,13 +439,21 @@ async function run() {
 
       app.post("/payment/success/:tranId", async (req, res) => {
         console.log(req.params.tranId);
+
+        const { tranId } = req.params;
+
+        const ClubOrder = await orderCollection.findOne({ transactionId: tranId });
+        console.log(ClubOrder);
+
+        paymentConfirmClub(ClubOrder);
+
         const result = await orderCollection.updateOne({ transactionId: req.params.tranId }, {
           $set: {
             paidStatus: true
           }
         });
         if (result.modifiedCount > 0) {
-          res.redirect(`https://unipay-client.web.app/payment/success/${req.params.tranId}`);
+          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`);
         }
       });
 
@@ -348,18 +484,19 @@ async function run() {
 
 
     app.post("/tourorders", async (req, res) => {
+      const tran_id = new ObjectId().toString();
       const { tourId } = req.body;
       const tour = await toursCollection.findOne({ _id: new ObjectId(tourId) });
       const order = req.body;
 
       console.log("Tour working good");
-      
+
       const data = {
         total_amount: tour?.cost,
         currency: "BDT",
         tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `https://unipay-server-production.up.railway.app/payment/success/${tran_id}`,
-        fail_url: `https://unipay-server-production.up.railway.app/payment/fail/${tran_id}`,
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
         cancel_url: 'http://localhost:3030/cancel',
         ipn_url: 'http://localhost:3030/ipn',
         shipping_method: 'Courier',
@@ -388,7 +525,7 @@ async function run() {
         stu_id: order.userId
       };
 
-      
+
 
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then(apiResponse => {
@@ -412,9 +549,9 @@ async function run() {
 
         const { tranId } = req.params;
 
-        const clubOrder = await tourOrdersCollection.findOne({ transactionId: tranId });
+        const tourOrder = await tourOrdersCollection.findOne({ transactionId: tranId });
 
-        paymentConfirmEmail(clubOrder);
+        paymentConfirmEvent(tourOrder);
 
         const result = await tourOrdersCollection.updateOne({ transactionId: req.params.tranId }, {
           $set: {
@@ -423,7 +560,7 @@ async function run() {
         });
 
         if (result.modifiedCount > 0) {
-          res.redirect(`https://unipay-client.web.app/payment/success/${req.params.tranId}`)
+          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
         }
       });
 
@@ -431,7 +568,7 @@ async function run() {
         const result = await tourOrdersCollection.deleteOne({ transactionId: req.params.tranId });
 
         if (result.deletedCount) {
-          res.redirect(`https://unipay-client.web.app/payment/fail/${req.params.tranId}`)
+          res.redirect(`http://localhost:5173/payment/fail/${req.params.tranId}`)
         }
       })
     });
