@@ -269,11 +269,23 @@ async function run() {
 
     // User APIs
 
-    app.get('/users', async (req, res) => {
-      const result = await usersCollection.find().toArray();
-      res.send(result);
+    app.get('/user', async (req, res) => {
+      try {
+        const { email } = req.query;
+        
+        // Fetch user data from MongoDB based on the provided email
+        const user = await usersCollection.findOne({ email });
+        
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+    
+        res.json(user);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
     });
-
     app.post('/users', async (req, res) => {
       const user = req.body;
       console.log(user);
@@ -286,6 +298,39 @@ async function run() {
       res.send(result);
     });
 
+
+    // Add a PUT route to update the user's profile
+    app.put('/users/:id', async (req, res) => {
+      try {
+        const userId = req.params.id;
+        const updatedUserData = req.body;
+    
+        // Update the user's profile in the database
+        const result = await usersCollection.findOneAndUpdate(
+          { _id: new ObjectId(userId) },
+          {
+            $set: {
+              name: updatedUserData.name,
+              phone: updatedUserData.phone,
+              email: updatedUserData.email,
+              photoURL: updatedUserData.photoURL,
+            },
+          },
+          { returnOriginal: false }
+        );
+    
+        if (!result.value) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+    
+        // Return the updated user data
+        res.json(result.value);
+      } catch (error) {
+        console.error('Error updating user data:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    
     // Admin APIs
 
     app.get('/users/admin/:email', async (req, res) => {
@@ -417,7 +462,6 @@ async function run() {
         timestamp: timestamp,
       };
 
-      console.log(data);
 
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then(apiResponse => {
@@ -443,7 +487,6 @@ async function run() {
         const { tranId } = req.params;
 
         const ClubOrder = await orderCollection.findOne({ transactionId: tranId });
-        console.log(ClubOrder);
 
         paymentConfirmClub(ClubOrder);
 
