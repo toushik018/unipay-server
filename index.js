@@ -269,23 +269,11 @@ async function run() {
 
     // User APIs
 
-    app.get('/user', async (req, res) => {
-      try {
-        const { email } = req.query;
-        
-        // Fetch user data from MongoDB based on the provided email
-        const user = await usersCollection.findOne({ email });
-        
-        if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-        }
-    
-        res.json(user);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        res.status(500).json({ message: 'Internal server error' });
-      }
+    app.get('/users', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
     });
+
     app.post('/users', async (req, res) => {
       const user = req.body;
       console.log(user);
@@ -462,6 +450,7 @@ async function run() {
         timestamp: timestamp,
       };
 
+      console.log(data);
 
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then(apiResponse => {
@@ -487,6 +476,7 @@ async function run() {
         const { tranId } = req.params;
 
         const ClubOrder = await orderCollection.findOne({ transactionId: tranId });
+        console.log(ClubOrder);
 
         paymentConfirmClub(ClubOrder);
 
