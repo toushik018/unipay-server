@@ -275,22 +275,22 @@ async function run() {
     });
 
     app.get('/user', async (req, res) => {
-  try {
-    const { email } = req.query;
+      try {
+        const { email } = req.query;
 
-    // Fetch user data from MongoDB based on the provided email
-    const user = await usersCollection.findOne({ email });
+        // Fetch user data from MongoDB based on the provided email
+        const user = await usersCollection.findOne({ email });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
 
-    res.json(user);
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+        res.send(user);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
 
 
     app.post('/users', async (req, res) => {
@@ -311,7 +311,7 @@ async function run() {
       try {
         const userId = req.params.id;
         const updatedUserData = req.body;
-    
+
         // Update the user's profile in the database
         const result = await usersCollection.findOneAndUpdate(
           { _id: new ObjectId(userId) },
@@ -325,11 +325,11 @@ async function run() {
           },
           { returnOriginal: false }
         );
-    
+
         if (!result.value) {
           return res.status(404).json({ message: 'User not found' });
         }
-    
+
         // Return the updated user data
         res.json(result.value);
       } catch (error) {
@@ -337,7 +337,27 @@ async function run() {
         res.status(500).json({ message: 'Internal server error' });
       }
     });
-    
+
+
+
+    app.delete('/users/:id', async (req, res) => {
+      const userId = req.params.id;
+
+      // Check if the user with the provided ID exists in the database
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // If the user exists, delete it
+      await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+
+      res.status(200).json({ message: 'User deleted successfully' });
+    });
+
+
+
     // Admin APIs
 
     app.get('/users/admin/:email', async (req, res) => {
