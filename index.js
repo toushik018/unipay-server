@@ -339,7 +339,6 @@ async function run() {
     });
 
 
-
     app.delete('/users/:id', async (req, res) => {
       const userId = req.params.id;
 
@@ -381,7 +380,6 @@ async function run() {
     });
 
     // Tour APIs
-
     app.get("/tours", async (req, res) => {
       const result = await toursCollection.find().toArray();
       res.send(result);
@@ -393,7 +391,6 @@ async function run() {
       const result = await toursCollection.findOne(query);
       res.send(result);
     });
-
 
 
     app.post("/tours", async (req, res) => {
